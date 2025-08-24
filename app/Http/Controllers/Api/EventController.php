@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use Illuminate\Support\Facades\Gate;
+use App\Http\Resources\EventResource;
+
 
 class EventController extends Controller
 {
@@ -14,7 +16,9 @@ class EventController extends Controller
      */
     public function index()
     {
-        return \App\Models\Event::all();
+        // return \App\Models\Event::all();
+        //loads all events together with the user relationship
+        return EventResource::collection(Event::with('user')->get());
     }
 
     /**
@@ -33,25 +37,26 @@ class EventController extends Controller
             ]),
             'user_id' => 1
         ]);
-        return $event;
+        return new EventResource($event);
     }
 
     /**
      * Display the specified resource.
      */
     //store is responsible for creating a new event
-    public function show(Request $request, Event $event)
+    public function show( Event $event)
     {
-        $event = Event::create([
-            ...$request->validate([
-                //value -> list of all validation restraints you want applied to that value
-                'name' => 'required|string|max:25',
-                'description' => 'nullable|string',
-                'start_time'=> 'required|date',
-                'end_time' => 'required|date|after:start_time'
-            ]),
-        ]);
-        return $event;
+        // $event = Event::create([
+        //     ...$request->validate([
+        //         //value -> list of all validation restraints you want applied to that value
+        //         'name' => 'required|string|max:25',
+        //         'description' => 'nullable|string',
+        //         'start_time'=> 'required|date',
+        //         'end_time' => 'required|date|after:start_time'
+        //     ]),
+        // ]);
+        $event->load('user', 'attendees');
+        return new EventResource($event);
     }
 
     /**
@@ -68,7 +73,7 @@ class EventController extends Controller
             ])
         );
 
-        return $event;
+        return new EventResource($event);
     }
 
     /**
