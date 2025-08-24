@@ -18,7 +18,9 @@ class EventController extends Controller
     {
         // return \App\Models\Event::all();
         //loads all events together with the user relationship
-        return EventResource::collection(Event::with('user')->get());
+        return EventResource::collection(
+            Event::with('user')->paginate()
+        );
     }
 
     /**
