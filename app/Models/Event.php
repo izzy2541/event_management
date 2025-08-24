@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
+    //has factory is a trait, to ass a trait to a class, use the use keyword
     use HasFactory;
 
     // Add this to allow mass assignment
