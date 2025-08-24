@@ -16,12 +16,48 @@ class EventController extends Controller
      */
     public function index()
     {
+        $query = Event::query();
+        $relations = ['user', 'attendees', 'attendees.user'];
+
+        foreach ($relations as $relation) {
+            //when first argument passed to when is true, it will run second argument
+            $query->when(
+                $this->shouldIncludeRelation($relation),
+                fn($q) => $q->with($relation)
+            );
+        }
+
         // return \App\Models\Event::all();
         //loads all events together with the user relationship
         return EventResource::collection(
-            Event::with('user')->paginate()
+            $query->latest()->paginate()
+            // Event::with('user')->paginate()
         );
     }
+
+    protected function shouldIncludeRelation(string $relation): bool
+    {
+        // Get the 'include' query parameter from the request
+        // Example: ?include=attendees,organiser
+        $include = request()->query('include');
+
+        // If no include query string is provided, don't include anything
+        if (!$include) {
+            return false;
+        }
+
+        // Convert the comma-separated string into an array of relations
+        // 1. explode(',', $include) → splits the string into an array
+        //    e.g. "attendees, organiser" → ["attendees", " organiser"]
+        // 2. array_map('trim', ...) → removes extra spaces around each item
+        //    → ["attendees", "organiser"]
+        $relations = array_map('trim', explode(',', $include));
+
+        // Check if the requested relation exists in that array
+        // Returns true if the relation should be included
+        return in_array($relation, $relations);
+    }
+
 
     /**
      * Store a newly created resource in storage.
