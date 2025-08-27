@@ -3,104 +3,67 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Event;
 use App\Http\Resources\EventResource;
 use App\Http\Traits\CanLoadRelationships;
+use App\Models\Event;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class EventController extends Controller
 {
     use CanLoadRelationships;
 
-    private readonly array $relations;
-
-        public function __construct()
-    {
-        $this->middleware('auth:sanctum')->except(['index', 'show']);
-        $this->middleware('throttle:api')
-            ->only(['store', 'update', 'destroy']);
-        $this->authorizeResource(Event::class, 'event');
-    }
+    private array $relations = ['user', 'attendees', 'attendees.user'];
 
     // public function __construct()
     // {
     //     $this->middleware('auth:sanctum')->except(['index', 'show']);
-    //     // $this->relations = ['user', 'attendees', 'attendees.user'];
+    //     $this->middleware('throttle:api')
+    //         ->only(['store', 'update', 'destroy']);
+    //     $this->authorizeResource(Event::class, 'event');
     // }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // $relations = ['user', 'attendees', 'attendees.user'];
+        Gate::authorize('viewAny', Event::class);
         $query = $this->loadRelationships(Event::query());
-        // return \App\Models\Event::all();
-        //loads all events together with the user relationship
+
         return EventResource::collection(
             $query->latest()->paginate()
-            // Event::with('user')->paginate()
         );
     }
-
-    protected function shouldIncludeRelation(string $relation): bool
-    {
-        // Get the 'include' query parameter from the request
-        // Example: ?include=attendees,organiser
-        $include = request()->query('include');
-
-        // If no include query string is provided, don't include anything
-        if (!$include) {
-            return false;
-        }
-
-        // Convert the comma-separated string into an array of relations
-        // 1. explode(',', $include) → splits the string into an array
-        //    e.g. "attendees, organiser" → ["attendees", " organiser"]
-        // 2. array_map('trim', ...) → removes extra spaces around each item
-        //    → ["attendees", "organiser"]
-        $relations = array_map('trim', explode(',', $include));
-
-        // Check if the requested relation exists in that array
-        // Returns true if the relation should be included
-        return in_array($relation, $relations);
-    }
-
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-       // Gate::authorize('create', Event::class);
+        Gate::authorize('create', Event::class);
         $event = Event::create([
             ...$request->validate([
-                //value -> list of all validation restraints you want applied to that value
-                'name' => 'required|string|max:25',
+                'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'start_time'=> 'required|date',
+                'start_time' => 'required|date',
                 'end_time' => 'required|date|after:start_time'
             ]),
             'user_id' => $request->user()->id
         ]);
+
         return new EventResource($this->loadRelationships($event));
     }
 
     /**
      * Display the specified resource.
      */
-    //store is responsible for creating a new event
-    public function show( Event $event)
+    public function show(Event $event)
     {
-        // $event = Event::create([
-        //     ...$request->validate([
-        //         //value -> list of all validation restraints you want applied to that value
-        //         'name' => 'required|string|max:25',
-        //         'description' => 'nullable|string',
-        //         'start_time'=> 'required|date',
-        //         'end_time' => 'required|date|after:start_time'
-        //     ]),
-        // ]);
-        return new EventResource($this->loadRelationships($event));
+        Gate::authorize('view', $event);
+        return new EventResource(
+            $this->loadRelationships($event)
+        );
     }
 
     /**
@@ -108,6 +71,11 @@ class EventController extends Controller
      */
     public function update(Request $request, Event $event)
     {
+        // if (Gate::denies('update-event', $event)) {
+        //     abort(403, 'You are not authorized to update this event.');
+        // }
+        // $this->authorize('update-event', $event);
+        Gate::authorize('update', $event);
         $event->update(
             $request->validate([
                 'name' => 'sometimes|string|max:255',
@@ -125,108 +93,9 @@ class EventController extends Controller
      */
     public function destroy(Event $event)
     {
+        Gate::authorize('delete', $event);
         $event->delete();
 
-        return response('', status: 204);
+        return response(status: 204);
     }
 }
-
-// namespace App\Http\Controllers\Api;
-
-// use App\Http\Controllers\Controller;
-// use App\Http\Resources\EventResource;
-// use App\Http\Traits\CanLoadRelationships;
-// use App\Models\Event;
-// use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Gate;
-
-// class EventController extends Controller
-// {
-//     use CanLoadRelationships;
-
-//     private array $relations = ['user', 'attendees', 'attendees.user'];
-
-//     // public function __construct()
-//     // {
-//     //     $this->middleware('auth:sanctum')->except(['index', 'show']);
-//     //     $this->middleware('throttle:api')
-//     //         ->only(['store', 'update', 'destroy']);
-//     //     $this->authorizeResource(Event::class, 'event');
-//     // }
-
-//     /**
-//      * Display a listing of the resource.
-//      */
-//     public function index()
-//     {
-//         Gate::authorize('viewAny', Event::class);
-//         $query = $this->loadRelationships(Event::query());
-
-//         return EventResource::collection(
-//             $query->latest()->paginate()
-//         );
-//     }
-
-//     /**
-//      * Store a newly created resource in storage.
-//      */
-//     public function store(Request $request)
-//     {
-//         Gate::authorize('create', Event::class);
-//         $event = Event::create([
-//             ...$request->validate([
-//                 'name' => 'required|string|max:255',
-//                 'description' => 'nullable|string',
-//                 'start_time' => 'required|date',
-//                 'end_time' => 'required|date|after:start_time'
-//             ]),
-//             'user_id' => $request->user()->id
-//         ]);
-
-//         return new EventResource($this->loadRelationships($event));
-//     }
-
-//     /**
-//      * Display the specified resource.
-//      */
-//     public function show(Event $event)
-//     {
-//         Gate::authorize('view', $event);
-//         return new EventResource(
-//             $this->loadRelationships($event)
-//         );
-//     }
-
-//     /**
-//      * Update the specified resource in storage.
-//      */
-//     public function update(Request $request, Event $event)
-//     {
-//         // if (Gate::denies('update-event', $event)) {
-//         //     abort(403, 'You are not authorized to update this event.');
-//         // }
-//         // $this->authorize('update-event', $event);
-//         Gate::authorize('update', $event);
-//         $event->update(
-//             $request->validate([
-//                 'name' => 'sometimes|string|max:255',
-//                 'description' => 'nullable|string',
-//                 'start_time' => 'sometimes|date',
-//                 'end_time' => 'sometimes|date|after:start_time'
-//             ])
-//         );
-
-//         return new EventResource($this->loadRelationships($event));
-//     }
-
-//     /**
-//      * Remove the specified resource from storage.
-//      */
-//     public function destroy(Event $event)
-//     {
-//         Gate::authorize('delete', $event);
-//         $event->delete();
-
-//         return response(status: 204);
-//     }
-// }
