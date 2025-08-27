@@ -18,7 +18,7 @@ class AuthController extends Controller
 
         $user = \App\Models\User::where('email', $request->email)->first();
 
-        if(!$user){
+        if (!$user) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.']
             ]);
@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         // here we are comparing the request password and the user password.
         //if they dont match, this will return false.
-        if(!Hash::check($request->password, $user->password)){
+        if (!Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.']
             ]);
@@ -42,6 +42,10 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $request->user()->tokens()->delete();
 
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
     }
 }
