@@ -15,8 +15,14 @@ Route::post('/logout', [AuthController::class, 'logout'])
 ->middleware('auth:sanctum');
 
 
-Route::apiResource('events', EventController::class);
-Route::apiResource('events.attendees', AttendeeController::class)
-    //    scoped here means that attendee resources are always part of an event,
-    //so if you use route model binding to get an attendee, laravel will automatically load it by looking only for the attendees of a parent event
-    ->scoped()->except(['update']);
+// Route::apiResource('events', EventController::class);
+// Route::apiResource('events.attendees', AttendeeController::class)
+//     //    scoped here means that attendee resources are always part of an event,
+//     //so if you use route model binding to get an attendee, laravel will automatically load it by looking only for the attendees of a parent event
+//     ->scoped()->except(['update']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('events', EventController::class);
+    Route::apiResource('events.attendees', AttendeeController::class)
+        ->scoped()->except(['update']);
+});

@@ -13,6 +13,10 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
+    protected $policies = [
+
+    ];
+
     public function register(): void
     {
         //
@@ -23,13 +27,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('update-event', function($user, Event $event){
-            return $user->id === $event->user_id;
-        });
+        // Gate::define('update-event', function($user, Event $event){
+        //     return $user->id === $event->user_id;
+        // });
 
-        Gate::define('delete-attendee', function($user, Event $event, Attendee $attendee){
-            return $user->id === $event->user_id;
-            $user->id === $attendee->user_id;
-        });
+        // Gate::define('delete-attendee', function($user, Event $event, Attendee $attendee){
+        //     return $user->id === $event->user_id ||
+        //     $user->id === $attendee->user_id;
+        // });
     }
 }
